@@ -5,6 +5,7 @@ module Api
         @requested_at = Time.now.utc
         return unless api_log_info?
         api_log_info(" ")
+        api_log_info("OOOOOOOOOO ManageIQ-API OpenID-Connect Authentication Support")
         log_request("API Request", :requested_at => @requested_at.to_s,
                                    :method       => request.request_method,
                                    :url          => request.original_url)

@@ -281,6 +281,39 @@ describe "Authentication API" do
           expect(response.parsed_body["token_ttl"]).to eq(1234)
         end
 
+        it "gets a token based identifier with a UI-Sec based token_ttl and cookie" do
+          api_basic_authorize
+
+          get api_auth_url, :params => { :requester_type => "ui-sec" }
+
+          expect(response).to have_http_status(:ok)
+          expect_result_to_have_keys(%w(auth_token token_ttl expires_on cookie))
+          expect(response.parsed_body["token_ttl"]).to eq(::Settings.session.timeout.to_i_with_method)
+        end
+
+        it "succeeds UI-Sec authentication with valid token and cookie" do
+          api_basic_authorize
+          get api_auth_url, :params => { :requester_type => 'ui-sec' }
+          ui_token  = response.parsed_body["auth_token"]
+          ui_cookie = response.parsed_body["cookie"]
+
+          get api_entrypoint_url, :headers => {Api::HttpHeaders::AUTH_TOKEN => ui_token, Api::HttpHeaders::UI_COOKIE => ui_cookie}
+
+          expect(response).to have_http_status(:ok)
+          expect_result_to_have_keys(ENTRYPOINT_KEYS)
+        end
+
+        it "fails UI-Sec authentication with valid token and invalid cookie" do
+          api_basic_authorize
+          get api_auth_url, :params => { :requester_type => 'ui-sec' }
+          ui_token = response.parsed_body["auth_token"]
+          _ui_cookie = response.parsed_body["cookie"]
+
+          get api_entrypoint_url, :headers => {Api::HttpHeaders::AUTH_TOKEN => ui_token, Api::HttpHeaders::UI_COOKIE => "invalid_cookie"}
+
+          expect(response).to have_http_status(:unauthorized)
+        end
+
         it "forgets the current token when asked to" do
           api_basic_authorize
 

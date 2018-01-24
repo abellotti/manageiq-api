@@ -71,6 +71,11 @@ module Api
           userid = api_token_mgr.token_get_info(auth_token, :userid)
           raise AuthenticationError, "Invalid Authentication Token #{auth_token} specified" unless userid
 
+          cookie = api_token_mgr.token_get_info(auth_token, :cookie)
+          if cookie && request.headers[HttpHeaders::UI_COOKIE] != cookie
+            raise AuthenticationError, "Invalid Authentication Token #{auth_token} specified"
+          end
+
           auth_user_obj = userid_to_userobj(userid)
 
           unless request.headers['X-Auth-Skip-Token-Renewal'] == 'true'

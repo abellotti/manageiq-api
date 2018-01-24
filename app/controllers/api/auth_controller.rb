@@ -12,6 +12,7 @@ module Api
         :token_ttl  => token_info[:token_ttl],
         :expires_on => token_info[:expires_on],
       }
+      res[:cookie] = token_info[:cookie] if token_info[:cookie]
       render_resource :auth, res
     end
 

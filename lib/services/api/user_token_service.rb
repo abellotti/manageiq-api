@@ -1,6 +1,6 @@
 module Api
   class UserTokenService
-    TYPES = %w(api ui ws).freeze
+    TYPES = %w(api ui ui-sec ws).freeze
 
     def initialize(config = ApiConfig, args = {})
       @config = config
@@ -10,7 +10,7 @@ module Api
     def token_mgr(type)
       @token_mgr ||= {}
       case type
-      when 'api', 'ui' # The default API token and UI token share the same TokenStore
+      when 'api', 'ui', 'ui-sec' # The default API token and UI token share the same TokenStore
         @token_mgr['api'] ||= new_token_mgr(base_config[:module], base_config[:name], api_config)
       when 'ws'
         @token_mgr['ws'] ||= TokenManager.new('ws', :token_ttl => -> { ::Settings.session.timeout })
@@ -28,13 +28,18 @@ module Api
       validate_requester_type(requester_type)
 
       # Additional Requester type token ttl's for authentication
-      type_to_ttl_override = {'ui' => ::Settings.session.timeout}
+      type_to_ttl_override = {'ui' => ::Settings.session.timeout, 'ui-sec' => ::Settings.session.timeout}
 
       token_ttl ||= type_to_ttl_override[requester_type]
 
-      $api_log.info("Generating Authentication Token for userid: #{userid} requester_type: #{requester_type} token_ttl: #{token_ttl}")
+      cookie = SecureRandom.hex(32) if requester_type == 'ui-sec'
 
-      token_mgr(requester_type).gen_token(:userid => userid, :token_ttl_override => token_ttl)
+      $api_log.info("Generating Authentication Token for userid: #{userid} requester_type: #{requester_type} token_ttl: #{token_ttl} cookie: #{cookie}")
+
+      token_metadata = { :userid => userid, :token_ttl_override => token_ttl }
+      token_metadata[:cookie] = cookie if cookie
+
+      token_mgr(requester_type).gen_token(token_metadata)
     end
 
     def validate_requester_type(requester_type)

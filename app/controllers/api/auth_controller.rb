@@ -1,5 +1,6 @@
 module Api
   class AuthController < BaseController
+    include ActionController::Cookies
     skip_before_action :validate_api_action
 
     def show
@@ -12,7 +13,9 @@ module Api
         :token_ttl  => token_info[:token_ttl],
         :expires_on => token_info[:expires_on],
       }
-      res[:cookie] = token_info[:cookie] if token_info[:cookie]
+      if token_info[:cookie]
+        cookies[HttpHeaders::MIQ_API_COOKIE] = { :value => token_info[:cookie], :httponly => true }
+      end
       render_resource :auth, res
     end
 

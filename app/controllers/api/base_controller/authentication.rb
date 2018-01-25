@@ -1,6 +1,8 @@
 module Api
   class BaseController
     module Authentication
+      include ActionController::Cookies
+
       SYSTEM_TOKEN_TTL = 30.seconds
 
       #
@@ -72,7 +74,7 @@ module Api
           raise AuthenticationError, "Invalid Authentication Token #{auth_token} specified" unless userid
 
           cookie = api_token_mgr.token_get_info(auth_token, :cookie)
-          if cookie && request.headers[HttpHeaders::UI_COOKIE] != cookie
+          if cookie.present? && cookies[HttpHeaders::MIQ_API_COOKIE] != cookie
             raise AuthenticationError, "Invalid Authentication Token #{auth_token} specified"
           end
 

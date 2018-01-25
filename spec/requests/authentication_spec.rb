@@ -287,17 +287,18 @@ describe "Authentication API" do
           get api_auth_url, :params => { :requester_type => "ui-sec" }
 
           expect(response).to have_http_status(:ok)
-          expect_result_to_have_keys(%w(auth_token token_ttl expires_on cookie))
+          expect_result_to_have_keys(%w[auth_token token_ttl expires_on])
+          expect(response.cookies[Api::HttpHeaders::MIQ_API_COOKIE]).to_not be_nil
           expect(response.parsed_body["token_ttl"]).to eq(::Settings.session.timeout.to_i_with_method)
         end
 
         it "succeeds UI-Sec authentication with valid token and cookie" do
           api_basic_authorize
           get api_auth_url, :params => { :requester_type => 'ui-sec' }
-          ui_token  = response.parsed_body["auth_token"]
-          ui_cookie = response.parsed_body["cookie"]
+          auth_token = response.parsed_body["auth_token"]
+          cookie = response.cookies[Api::HttpHeaders::MIQ_API_COOKIE]
 
-          get api_entrypoint_url, :headers => {Api::HttpHeaders::AUTH_TOKEN => ui_token, Api::HttpHeaders::UI_COOKIE => ui_cookie}
+          get api_entrypoint_url, :headers => {Api::HttpHeaders::AUTH_TOKEN => auth_token, "HTTP_COOKIE" => "#{Api::HttpHeaders::MIQ_API_COOKIE}=#{cookie}"}
 
           expect(response).to have_http_status(:ok)
           expect_result_to_have_keys(ENTRYPOINT_KEYS)
@@ -306,10 +307,8 @@ describe "Authentication API" do
         it "fails UI-Sec authentication with valid token and invalid cookie" do
           api_basic_authorize
           get api_auth_url, :params => { :requester_type => 'ui-sec' }
-          ui_token = response.parsed_body["auth_token"]
-          _ui_cookie = response.parsed_body["cookie"]
-
-          get api_entrypoint_url, :headers => {Api::HttpHeaders::AUTH_TOKEN => ui_token, Api::HttpHeaders::UI_COOKIE => "invalid_cookie"}
+          auth_token = response.parsed_body["auth_token"]
+          get api_entrypoint_url, :headers => {Api::HttpHeaders::AUTH_TOKEN => auth_token, "HTTP_COOKIE" => "#{Api::HttpHeaders::MIQ_API_COOKIE}=invalid_cookie"}
 
           expect(response).to have_http_status(:unauthorized)
         end
